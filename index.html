@@ -119,8 +119,14 @@
        другой проверяет его на слабые места, третий предлагает альтернативу, четвёртый фиксирует разногласия.
        В конце судья изучает всё обсуждение и пишет итоговый отчёт.</p>
     <h2 style="margin-top:12px">Участники</h2>
-    <ul id="rolesList" class="roles"></ul>
-    <p class="hint">Все эксперты — это одна языковая модель с разными ролями и инструкциями.</p>
+    <ul id="rolesList" class="roles">
+      <li><strong>Исследователь</strong> — предлагает решение</li>
+      <li><strong>Критик</strong> — ищет слабые места и риски</li>
+      <li><strong>Оппонент</strong> — предлагает альтернативный подход</li>
+      <li><strong>Модератор</strong> — обобщает разногласия</li>
+      <li><strong>Судья</strong> — формирует итоговый отчёт</li>
+    </ul>
+    <p class="hint">Все эксперты - это одна языковая модель с разными ролями и инструкциями.</p>
   </section>
 
   <section class="card">
@@ -306,7 +312,7 @@
   /* ----- интерфейс ----- */
   function updateCallsHint() {
     const n = parseInt($("rounds").value) * 4 + 1;
-    $("callsHint").textContent = `Один запуск = ${n} обращений к модели (на бесплатном тарифе возможны лимиты). Обычно до минуты.`;
+    $("callsHint").textContent = `Один запуск = ${n} обращений к модели. Обычно до минуты.`;
   }
   $("rounds").addEventListener("change", updateCallsHint); updateCallsHint();
   $("temp").addEventListener("input", () => { $("tempVal").textContent = $("temp").value; });
