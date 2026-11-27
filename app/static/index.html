@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Debate Lab</title>
+<style>
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --text: #1d2130; --muted: #6a7088;
+    --accent: #4f46e5; --accent-soft: #eceafe; --accent-text: #ffffff; --border: #e2e5ef;
+    --err: #b42318; --err-bg: #fdecea;
+    --good: #15803d; --good-bg: #e8f6ec; --warn: #b45309; --warn-bg: #fdf1e0;
+    --info: #1d4ed8; --info-bg: #e8effd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161f; --card: #1d2030; --text: #eceef7; --muted: #9aa1bb;
+            --accent: #7c75ff; --accent-soft: #2a2850; --accent-text: #10111a; --border: #2c3046;
+            --err: #ff8a80; --err-bg: #3a1f22;
+            --good: #6fd68f; --good-bg: #1c3025; --warn: #f2b25e; --warn-bg: #3a2c18;
+            --info: #8db0ff; --info-bg: #1f2a47; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+          padding: 20px; margin-bottom: 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+                     background: var(--bg); color: var(--text); font: inherit; }
+  textarea { min-height: 110px; resize: vertical; }
+  .about p { margin: 0 0 8px; }
+  .roles { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; }
+  .row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin-top: 16px; }
+  .temp { flex: 2; min-width: 200px; }
+  .rounds { flex: 1; min-width: 140px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 14px; }
+  button { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px;
+           padding: 12px 22px; font: inherit; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .55; cursor: wait; }
+  button.link { background: none; color: var(--accent); padding: 0; font-weight: 500; }
+  .example { background: none; color: var(--accent); font-size: 14px; padding: 0; font-weight: 500; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+  .error { background: var(--err-bg); color: var(--err); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+
+  /* ---- прогресс ---- */
+  .progress h2 { display: flex; justify-content: space-between; }
+  .steps { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .step { flex: 1; min-width: 120px; display: flex; align-items: center; gap: 10px;
+          padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted);
+          transition: border-color .3s, background .3s, color .3s; }
+  .dot { position: relative; width: 26px; height: 26px; border-radius: 50%; flex: none;
+         display: grid; place-items: center; font-size: 13px; font-weight: 700;
+         border: 2px solid var(--border); }
+  .step.active { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+  .step.active .dot { border-color: var(--accent-soft); }
+  .step.active .dot::after { content: ""; position: absolute; inset: -2px; border-radius: 50%;
+         border: 2px solid transparent; border-top-color: var(--accent); animation: spin .9s linear infinite; }
+  .step.done { color: var(--text); }
+  .step.done .dot { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .statusText { font-weight: 600; }
+  .dots::after { content: ""; animation: dots 1.4s steps(4, end) infinite; }
+  .bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 12px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px;
+           transition: width .6s ease; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  @keyframes appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .appear { animation: appear .4s ease both; }
+  @media (prefers-reduced-motion: reduce) {
+    .step.active .dot::after, .dots::after, .appear { animation: none; }
+  }
+
+  /* ---- итоговый отчёт ---- */
+  .report { border: 2px solid var(--accent); }
+  .report-title { font-size: 22px; font-weight: 700; margin: 0; }
+  .verdict { background: var(--accent-soft); border-left: 5px solid var(--accent); border-radius: 10px;
+             padding: 14px 16px; margin: 14px 0; }
+  .verdict .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
+  .verdict .txt { font-size: 18px; font-weight: 600; margin-top: 4px; }
+  .reasoning { margin: 0 0 14px; }
+  .reasoning .lbl, .panel .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; margin-bottom: 6px; }
+  .reasoning .lbl { color: var(--muted); }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .panel { border-radius: 10px; padding: 12px 14px; }
+  .panel.good { background: var(--good-bg); } .panel.good .lbl { color: var(--good); }
+  .panel.warn { background: var(--warn-bg); } .panel.warn .lbl { color: var(--warn); }
+  .panel.info { background: var(--info-bg); } .panel.info .lbl { color: var(--info); }
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .list li { position: relative; padding-left: 16px; }
+  .list li::before { content: ""; position: absolute; left: 0; top: .6em; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .55; }
+  .signature { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+
+  /* ---- обсуждение ---- */
+  details { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; background: var(--bg); }
+  summary { cursor: pointer; }
+  summary b { font-weight: 700; }
+  summary .gist { display: block; color: var(--muted); font-size: 14px; margin-top: 2px;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  details[open] summary .gist { display: none; }
+  .fields { display: grid; gap: 12px; margin-top: 12px; }
+  .field .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; margin-bottom: 4px; color: var(--muted); }
+  .field.good .lbl { color: var(--good); } .field.warn .lbl { color: var(--warn); } .field.info .lbl { color: var(--info); }
+  .meta { color: var(--muted); font-size: 14px; display: flex; gap: 16px; flex-wrap: wrap; }
+  pre { overflow: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-size: 13px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AI Debate Lab</h1>
+  <p class="sub">Лаборатория, где несколько ИИ-экспертов обсуждают вашу идею, а судья подводит итог.</p>
+
+  <section class="card about">
+    <p>Опишите идею или задачу. Эксперты выступают по очереди и читают друг друга: один предлагает решение,
+       другой проверяет его на слабые места, третий предлагает альтернативу, четвёртый фиксирует разногласия.
+       В конце судья изучает всё обсуждение и пишет итоговый отчёт.</p>
+    <h2 style="margin-top:12px">Участники</h2>
+    <ul id="rolesList" class="roles"></ul>
+    <p class="hint">Все эксперты — это одна языковая модель с разными ролями и инструкциями.</p>
+  </section>
+
+  <section class="card">
+    <label for="task">Идея или вопрос</label>
+    <textarea id="task" placeholder="Например: стоит ли небольшому интернет-магазину создавать собственную курьерскую службу?"></textarea>
+    <button class="example" id="example" type="button">Подставить пример</button>
+
+    <div class="row">
+      <div class="temp">
+        <label for="temp">Температура: <span id="tempVal">0.3</span></label>
+        <input id="temp" type="range" min="0" max="2" step="0.1" value="0.3">
+        <div class="hint">Низкая — предсказуемо, высокая — разнообразнее.</div>
+      </div>
+      <div class="rounds">
+        <label for="rounds">Раундов обсуждения</label>
+        <select id="rounds"><option value="1">1</option><option value="2">2</option></select>
+      </div>
+      <button id="go" type="button">Обсудить</button>
+    </div>
+    <div class="hint" id="callsHint" style="margin-top:8px"></div>
+  </section>
+
+  <div id="error" class="error" hidden></div>
+
+  <section id="progress" class="card progress" hidden aria-live="polite">
+    <h2><span>Идёт обсуждение</span><span id="timer">0 с</span></h2>
+    <div class="statusText"><span id="statusText"></span><span class="dots"></span></div>
+    <div class="steps" id="steps"></div>
+    <div class="bar"><i id="barFill"></i></div>
+  </section>
+
+  <section id="out" hidden>
+    <div class="card report appear" id="reportCard" hidden>
+      <div class="report-title">Итоговый отчёт</div>
+      <div class="hint">По результатам всего обсуждения</div>
+      <div id="reportBody"></div>
+      <div class="signature" id="signature"></div>
+    </div>
+
+    <div class="card" id="discCard">
+      <h2>Ход обсуждения</h2>
+      <div id="discussion"></div>
+    </div>
+
+    <div class="card" id="metaCard" hidden>
+      <div class="meta" id="meta"></div>
+      <p><button class="link" id="toggle" type="button">Показать сырой JSON</button></p>
+      <pre id="raw" hidden></pre>
+    </div>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const EXAMPLE = "Как небольшому интернет-магазину организовать доставку: создать собственную курьерскую службу или использовать стороннего оператора?";
+  const LABELS = {
+    position: "Позиция", arguments: "Аргументы", constraints: "Ограничения задачи",
+    objections: "Возражения", risks: "Риски", weak_assumptions: "Слабые допущения",
+    alternative: "Альтернатива", comparison: "Сравнение с исходным решением",
+    overlooked_opportunities: "Упущенные возможности",
+    key_factors: "Ключевые факторы", agreements: "Где мнения совпадают",
+    disagreements: "Разногласия", open_questions: "Открытые вопросы",
+    final_decision: "Итоговое решение", reasoning: "Почему так",
+    deciding_factors: "Решающие факторы", limitations: "Ограничения и неопределённости",
+    data_needed: "Какие данные нужны",
+  };
+  const KIND = {
+    arguments: "good", overlooked_opportunities: "good", agreements: "good", deciding_factors: "good",
+    objections: "warn", risks: "warn", weak_assumptions: "warn", disagreements: "warn", limitations: "warn",
+    constraints: "info", key_factors: "info", open_questions: "info", data_needed: "info",
+  };
+  const VERBS = {
+    researcher: "Исследователь формулирует решение", critic: "Критик ищет слабые места",
+    opponent: "Оппонент предлагает альтернативу", mediator: "Модератор подводит промежуточные итоги",
+    judge: "Судья пишет итоговый отчёт",
+  };
+  let ROLE_LIST = [], timerId = null;
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  function showError(msg) { const e = $("error"); e.textContent = msg; e.hidden = false; }
+  function list(items) { const ul = el("ul", "list"); items.forEach((t) => ul.appendChild(el("li", null, t))); return ul; }
+
+  /* ----- список участников и шаги прогресса ----- */
+  async function loadRoles() {
+    try { ROLE_LIST = await (await fetch("/roles")).json(); } catch (e) { return; }
+    ROLE_LIST.forEach((r) => {
+      const li = el("li"); li.appendChild(el("b", null, r.title + " — ")); li.appendChild(document.createTextNode(r.description));
+      $("rolesList").appendChild(li);
+    });
+  }
+  loadRoles();
+
+  function buildSteps() {
+    const box = $("steps"); box.innerHTML = "";
+    ROLE_LIST.forEach((r, i) => {
+      const s = el("div", "step"); s.id = "step-" + r.id;
+      s.appendChild(el("span", "dot", String(i + 1))); s.appendChild(el("span", null, r.title));
+      box.appendChild(s);
+    });
+  }
+  function setStep(id, state) {
+    const s = $("step-" + id); if (!s) return;
+    s.className = "step" + (state ? " " + state : "");
+    s.querySelector(".dot").textContent = state === "done" ? "✓" : String(ROLE_LIST.findIndex((r) => r.id === id) + 1);
+  }
+  function setBar(p) { $("barFill").style.width = Math.min(100, p) + "%"; }
+
+  function startTimer() {
+    const t0 = Date.now(); $("timer").textContent = "0 с";
+    timerId = setInterval(() => { $("timer").textContent = Math.round((Date.now() - t0) / 1000) + " с"; }, 1000);
+  }
+  function stopTimer() { clearInterval(timerId); timerId = null; }
+
+  /* ----- отрисовка ----- */
+  function renderExpert(entry, showRound) {
+    const det = el("details", "appear");
+    const sum = el("summary");
+    sum.appendChild(el("b", null, entry.role_title + (showRound ? ` · раунд ${entry.round}` : "")));
+    const first = Object.values(entry.content).find((v) => typeof v === "string");
+    if (first) sum.appendChild(el("span", "gist", first));
+    det.appendChild(sum);
+
+    const fields = el("div", "fields");
+    Object.entries(entry.content).forEach(([key, val]) => {
+      const f = el("div", "field " + (KIND[key] || "plain"));
+      f.appendChild(el("div", "lbl", LABELS[key] || key));
+      if (Array.isArray(val)) f.appendChild(list(val)); else f.appendChild(el("div", null, val));
+      fields.appendChild(f);
+    });
+    det.appendChild(fields);
+    return det;
+  }
+
+  function renderReport(r) {
+    const body = $("reportBody"); body.innerHTML = "";
+    const v = el("div", "verdict");
+    v.appendChild(el("div", "lbl", "Итоговое решение")); v.appendChild(el("div", "txt", r.final_decision));
+    body.appendChild(v);
+
+    const why = el("div", "reasoning");
+    why.appendChild(el("div", "lbl", LABELS.reasoning)); why.appendChild(el("div", null, r.reasoning));
+    body.appendChild(why);
+
+    const grid = el("div", "grid");
+    [["deciding_factors", "good"], ["limitations", "warn"], ["data_needed", "info"]].forEach(([key, kind]) => {
+      const p = el("div", "panel " + kind);
+      p.appendChild(el("div", "lbl", LABELS[key])); p.appendChild(list(r[key]));
+      grid.appendChild(p);
+    });
+    body.appendChild(grid);
+  }
+
+  /* ----- события потока ----- */
+  let totalSteps = 5, doneSteps = 0;
+  function handle(ev, showRound) {
+    if (ev.type === "start") {
+      if (ev.role === "researcher" && ev.round > 1) ROLE_LIST.slice(0, 4).forEach((r) => setStep(r.id, ""));
+      setStep(ev.role, "active");
+      $("statusText").textContent = VERBS[ev.role] + (ev.round > 1 ? ` (раунд ${ev.round})` : "");
+    } else if (ev.type === "entry") {
+      setStep(ev.entry.role, "done");
+      doneSteps += 1; setBar((doneSteps / totalSteps) * 100);
+      $("out").hidden = false;
+      $("discussion").appendChild(renderExpert(ev.entry, showRound));
+    } else if (ev.type === "result") {
+      const d = ev.data;
+      setStep("judge", "done"); setBar(100);
+      renderReport(d.final_report);
+      $("signature").textContent = "Итоговый отчёт подготовил: " + d.report_by +
+        " — на основе обсуждения: " + [...new Set(d.discussion.map((x) => x.role_title))].join(", ");
+      $("meta").textContent = "";
+      [`Модель: ${d.model}`, `Температура: ${d.temperature}`, `Раундов: ${d.rounds}`,
+       `Обращений к модели: ${d.llm_calls}`, `Токенов: ${d.usage.total_tokens ?? "—"}`, `Время: ${d.latency_seconds} с`]
+        .forEach((t) => $("meta").appendChild(el("span", null, t)));
+      $("raw").textContent = JSON.stringify(d, null, 2);
+      $("out").hidden = false; $("reportCard").hidden = false; $("metaCard").hidden = false;
+      $("reportCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (ev.type === "error") {
+      throw new Error(ev.detail);
+    }
+  }
+
+  /* ----- интерфейс ----- */
+  function updateCallsHint() {
+    const n = parseInt($("rounds").value) * 4 + 1;
+    $("callsHint").textContent = `Один запуск = ${n} обращений к модели (на бесплатном тарифе возможны лимиты). Обычно до минуты.`;
+  }
+  $("rounds").addEventListener("change", updateCallsHint); updateCallsHint();
+  $("temp").addEventListener("input", () => { $("tempVal").textContent = $("temp").value; });
+  $("example").addEventListener("click", () => { $("task").value = EXAMPLE; });
+  $("toggle").addEventListener("click", () => {
+    const raw = $("raw"); raw.hidden = !raw.hidden;
+    $("toggle").textContent = raw.hidden ? "Показать сырой JSON" : "Скрыть сырой JSON";
+  });
+
+  $("go").addEventListener("click", async () => {
+    const task = $("task").value.trim();
+    $("error").hidden = true; $("out").hidden = true; $("reportCard").hidden = true; $("metaCard").hidden = true;
+    $("discussion").innerHTML = "";
+    if (task.length < 5) { showError("Введите идею или задачу (минимум 5 символов)."); return; }
+
+    const rounds = parseInt($("rounds").value);
+    totalSteps = rounds * 4 + 1; doneSteps = 0;
+    const btn = $("go"); btn.disabled = true; btn.textContent = "Эксперты обсуждают…";
+    buildSteps(); setBar(3); $("statusText").textContent = "Запускаю обсуждение"; $("progress").hidden = false; startTimer();
+
+    try {
+      const res = await fetch("/debate/stream", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task, temperature: parseFloat($("temp").value), rounds }),
+      });
+      if (!res.ok) {
+        let d = ""; try { d = (await res.json()).detail; } catch (e) {}
+        throw new Error(typeof d === "string" && d ? d : "Сервер вернул ошибку " + res.status);
+      }
+      const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+          if (line) handle(JSON.parse(line), rounds > 1);
+        }
+      }
+    } catch (e) {
+      showError("Ошибка: " + e.message);
+    } finally {
+      stopTimer(); $("progress").hidden = true;
+      btn.disabled = false; btn.textContent = "Обсудить";
+    }
+  });
+</script>
+</body>
+</html>
