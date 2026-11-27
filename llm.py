@@ -55,7 +55,7 @@ class LLMClient:
             }
         if self.settings.structured_output_mode == "json_object":
             return {"type": "json_object"}
-        return None  # режим "prompt": формат не навязываем, схема только в промпте
+        return None  
 
     async def generate_structured(
         self,
@@ -67,7 +67,6 @@ class LLMClient:
     ) -> tuple[T, Usage]:
         """Вызывает LLM и возвращает проверенный Pydantic-объект + расход токенов."""
         if self.settings.structured_output_mode != "json_schema":
-            # В этих режимах схему провайдер не навязывает — описываем её в промпте.
             system += (
                 "\n\nВерни ТОЛЬКО валидный JSON-объект, строго соответствующий схеме:\n"
                 + json.dumps(schema_model.model_json_schema(), ensure_ascii=False)
