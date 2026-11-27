@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="images/favicon.ico">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Debate Lab</title>
+</head>
+<body>
+<main>
+  <h1>AI Debate Lab</h1>
+  <p class="sub">Лаборатория, где несколько ИИ-экспертов обсуждают вашу идею, а судья подводит итог.</p>
+
+  <section class="card about">
+    <p>Опишите идею или задачу. Эксперты выступают по очереди и читают друг друга: один предлагает решение,
+       другой проверяет его на слабые места, третий предлагает альтернативу, четвёртый фиксирует разногласия.
+       В конце судья изучает всё обсуждение и пишет итоговый отчёт.</p>
+    <h2 style="margin-top:12px">Участники</h2>
+    <ul id="rolesList" class="roles">
+    </ul>
+    <p class="hint">Все эксперты - это одна языковая модель с разными ролями и инструкциями.</p>
+  </section>
+
+  <section class="card">
+    <label for="task">Идея или вопрос</label>
+    <textarea id="task" placeholder="Например: стоит ли небольшому интернет-магазину создавать собственную курьерскую службу?"></textarea>
+    <button class="example" id="example" type="button">Подставить пример</button>
+
+    <div class="row">
+      <div class="temp">
+        <label for="temp">Температура: <span id="tempVal">0.3</span></label>
+        <input id="temp" type="range" min="0" max="2" step="0.1" value="0.3">
+        <div class="hint">Низкая — предсказуемо, высокая — разнообразнее.</div>
+      </div>
+      <div class="rounds">
+        <label for="rounds">Раундов обсуждения</label>
+        <select id="rounds"><option value="1">1</option><option value="2">2</option></select>
+      </div>
+      <button id="go" type="button">Обсудить</button>
+    </div>
+    <div class="hint" id="callsHint" style="margin-top:8px"></div>
+  </section>
+
+  <div id="error" class="error" hidden></div>
+
+  <section id="progress" class="card progress" hidden aria-live="polite">
+    <h2><span>Идёт обсуждение</span><span id="timer">0 с</span></h2>
+    <div class="statusText"><span id="statusText"></span><span class="dots"></span></div>
+    <div class="steps" id="steps"></div>
+    <div class="bar"><i id="barFill"></i></div>
+  </section>
+
+  <section id="out" hidden>
+    <div class="card report appear" id="reportCard" hidden>
+      <div class="report-title">Итоговый отчёт</div>
+      <div class="hint">По результатам всего обсуждения</div>
+      <div id="reportBody"></div>
+    </div>
+
+    <div class="card" id="discCard">
+      <h2>Ход обсуждения</h2>
+      <div id="discussion"></div>
+    </div>
+
+    <div class="card" id="metaCard" hidden>
+      <div class="meta" id="meta"></div>
+      <p><button class="link" id="toggle" type="button">Показать сырой JSON</button></p>
+      <pre id="raw" hidden></pre>
+    </div>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const EXAMPLE = "Как небольшому интернет-магазину организовать доставку: создать собственную курьерскую службу или использовать стороннего оператора?";
+  const LABELS = {
+    position: "Позиция", arguments: "Аргументы", constraints: "Ограничения задачи",
+    objections: "Возражения", risks: "Риски", weak_assumptions: "Слабые допущения",
+    alternative: "Альтернатива", comparison: "Сравнение с исходным решением",
+    overlooked_opportunities: "Упущенные возможности",
+    key_factors: "Ключевые факторы", agreements: "Где мнения совпадают",
+    disagreements: "Разногласия", open_questions: "Открытые вопросы",
+    final_decision: "Итоговое решение", reasoning: "Почему так",
+    deciding_factors: "Решающие факторы", limitations: "Ограничения и неопределённости",
+    data_needed: "Какие данные нужны",
+  };
+  const KIND = {
+    arguments: "good", overlooked_opportunities: "good", agreements: "good", deciding_factors: "good",
+    objections: "warn", risks: "warn", weak_assumptions: "warn", disagreements: "warn", limitations: "warn",
+    constraints: "info", key_factors: "info", open_questions: "info", data_needed: "info",
+  };
+  const VERBS = {
+    researcher: "Исследователь формулирует решение", critic: "Критик ищет слабые места",
+    opponent: "Оппонент предлагает альтернативу", mediator: "Модератор подводит промежуточные итоги",
+    judge: "Судья пишет итоговый отчёт",
+  };
+  let ROLE_LIST = [], timerId = null;
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  function showError(msg) { const e = $("error"); e.textContent = msg; e.hidden = false; }
+  function list(items) { const ul = el("ul", "list"); items.forEach((t) => ul.appendChild(el("li", null, t))); return ul; }
+
+  /* ----- список участников и шаги прогресса ----- */
+  async function loadRoles() {
+    try { ROLE_LIST = await (await fetch("/roles")).json(); } catch (e) { return; }
+    ROLE_LIST.forEach((r) => {
+      const li = el("li"); li.appendChild(el("b", null, r.title + " — ")); li.appendChild(document.createTextNode(r.description));
+      $("rolesList").appendChild(li);
+    });
+  }
+  loadRoles();
+
+  function buildSteps() {
+    const box = $("steps"); box.innerHTML = "";
+    ROLE_LIST.forEach((r, i) => {
+      const s = el("div", "step"); s.id = "step-" + r.id;
+      s.appendChild(el("span", "dot", String(i + 1))); s.appendChild(el("span", null, r.title));
+      box.appendChild(s);
+    });
+  }
+  function setStep(id, state) {
+    const s = $("step-" + id); if (!s) return;
+    s.className = "step" + (state ? " " + state : "");
+    s.querySelector(".dot").textContent = state === "done" ? "✓" : String(ROLE_LIST.findIndex((r) => r.id === id) + 1);
+  }
+  function setBar(p) { $("barFill").style.width = Math.min(100, p) + "%"; }
+
+  function startTimer() {
+    const t0 = Date.now(); $("timer").textContent = "0 с";
+    timerId = setInterval(() => { $("timer").textContent = Math.round((Date.now() - t0) / 1000) + " с"; }, 1000);
+  }
+  function stopTimer() { clearInterval(timerId); timerId = null; }
+
+  /* ----- отрисовка ----- */
+  function renderExpert(entry, showRound) {
+    const det = el("details", "appear");
+    const sum = el("summary");
+    sum.appendChild(el("b", null, entry.role_title + (showRound ? ` · раунд ${entry.round}` : "")));
+    det.appendChild(sum);
+
+    const fields = el("div", "fields");
+    Object.entries(entry.content).forEach(([key, val]) => {
+      const f = el("div", "field " + (KIND[key] || "plain"));
+      f.appendChild(el("div", "lbl", LABELS[key] || key));
+      if (Array.isArray(val)) f.appendChild(list(val)); else f.appendChild(el("div", null, val));
+      fields.appendChild(f);
+    });
+    det.appendChild(fields);
+    return det;
+  }
+
+  function renderReport(r) {
+    const body = $("reportBody"); body.innerHTML = "";
+    const v = el("div", "verdict");
+    v.appendChild(el("div", "lbl", "Итоговое решение")); v.appendChild(el("div", "txt", r.final_decision));
+    body.appendChild(v);
+
+    const why = el("div", "reasoning");
+    why.appendChild(el("div", "lbl", LABELS.reasoning)); why.appendChild(el("div", null, r.reasoning));
+    body.appendChild(why);
+
+    const grid = el("div", "grid");
+    [["deciding_factors", "good"], ["limitations", "warn"], ["data_needed", "info"]].forEach(([key, kind]) => {
+      const p = el("div", "panel " + kind);
+      p.appendChild(el("div", "lbl", LABELS[key])); p.appendChild(list(r[key]));
+      grid.appendChild(p);
+    });
+    body.appendChild(grid);
+  }
+
+  /* ----- события потока ----- */
+  let totalSteps = 5, doneSteps = 0;
+  function handle(ev, showRound) {
+    if (ev.type === "start") {
+      if (ev.role === "researcher" && ev.round > 1) ROLE_LIST.slice(0, 4).forEach((r) => setStep(r.id, ""));
+      setStep(ev.role, "active");
+      $("statusText").textContent = VERBS[ev.role] + (ev.round > 1 ? ` (раунд ${ev.round})` : "");
+    } else if (ev.type === "entry") {
+      setStep(ev.entry.role, "done");
+      doneSteps += 1; setBar((doneSteps / totalSteps) * 100);
+      $("out").hidden = false;
+      $("discussion").appendChild(renderExpert(ev.entry, showRound));
+    } else if (ev.type === "result") {
+      const d = ev.data;
+      setStep("judge", "done"); setBar(100);
+      renderReport(d.final_report);
+      $("meta").textContent = "";
+      [`Модель: ${d.model}`, `Температура: ${d.temperature}`, `Раундов: ${d.rounds}`,
+       `Обращений к модели: ${d.llm_calls}`, `Токенов: ${d.usage.total_tokens ?? "—"}`, `Время: ${d.latency_seconds} с`]
+        .forEach((t) => $("meta").appendChild(el("span", null, t)));
+      $("raw").textContent = JSON.stringify(d, null, 2);
+      $("out").hidden = false; $("reportCard").hidden = false; $("metaCard").hidden = false;
+      $("reportCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (ev.type === "error") {
+      throw new Error(ev.detail);
+    }
+  }
+
+  /* ----- интерфейс ----- */
+  function updateCallsHint() {
+    const n = parseInt($("rounds").value) * 4 + 1;
+    $("callsHint").textContent = `Один запуск = ${n} обращений к модели. Обычно до нескольких минут.`;
+  }
+  $("rounds").addEventListener("change", updateCallsHint); updateCallsHint();
+  $("temp").addEventListener("input", () => { $("tempVal").textContent = $("temp").value; });
+  $("example").addEventListener("click", () => { $("task").value = EXAMPLE; });
+  $("toggle").addEventListener("click", () => {
+    const raw = $("raw"); raw.hidden = !raw.hidden;
+    $("toggle").textContent = raw.hidden ? "Показать сырой JSON" : "Скрыть сырой JSON";
+  });
+
+  $("go").addEventListener("click", async () => {
+    const task = $("task").value.trim();
+    $("error").hidden = true; $("out").hidden = true; $("reportCard").hidden = true; $("metaCard").hidden = true;
+    $("discussion").innerHTML = "";
+    if (task.length < 5) { showError("Введите идею или задачу (минимум 5 символов)."); return; }
+
+    const rounds = parseInt($("rounds").value);
+    totalSteps = rounds * 4 + 1; doneSteps = 0;
+    const btn = $("go"); btn.disabled = true; btn.textContent = "Эксперты обсуждают…";
+    buildSteps(); setBar(3); $("statusText").textContent = "Запускаю обсуждение"; $("progress").hidden = false; startTimer();
+
+    try {
+      const res = await fetch("/debate/stream", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task, temperature: parseFloat($("temp").value), rounds }),
+      });
+      if (!res.ok) {
+        let d = ""; try { d = (await res.json()).detail; } catch (e) {}
+        throw new Error(typeof d === "string" && d ? d : "Сервер вернул ошибку " + res.status);
+      }
+      const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+          if (line) handle(JSON.parse(line), rounds > 1);
+        }
+      }
+    } catch (e) {
+      showError("Ошибка: " + e.message);
+    } finally {
+      stopTimer(); $("progress").hidden = true;
+      btn.disabled = false; btn.textContent = "Обсудить";
+    }
+  });
+</script>
+</body>
+</html>

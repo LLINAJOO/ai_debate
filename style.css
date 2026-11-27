@@ -1,0 +1,571 @@
+:root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --text: #1d2130;
+    --muted: #6a7088;
+
+    --accent: #9acaf2;
+    --accent-soft: #eaf7fe;
+    --accent-text: #ffffff;
+    --border: #e2e5ef;
+
+    --err: #b42318;
+    --err-bg: #fdecea;
+
+    --good: #15803d;
+    --good-bg: #e8f6ec;
+
+    --warn: #b45309;
+    --warn-bg: #fdf1e0;
+
+    --info: #1d4ed8;
+    --info-bg: #e8effd;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #14161f;
+        --card: #1d2030;
+        --text: #eceef7;
+        --muted: #9aa1bb;
+
+        --accent: #7c75ff;
+        --accent-soft: #2a2850;
+        --accent-text: #10111a;
+        --border: #2c3046;
+
+        --err: #ff8a80;
+        --err-bg: #3a1f22;
+
+        --good: #6fd68f;
+        --good-bg: #1c3025;
+
+        --warn: #f2b25e;
+        --warn-bg: #3a2c18;
+
+        --info: #8db0ff;
+        --info-bg: #1f2a47;
+    }
+}
+
+
+/* ---- базовые стили ---- */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: url("images/background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 16px 64px;
+}
+
+h1 {
+    margin: 0 0 4px;
+    font-size: 28px;
+}
+
+h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 0 0 8px;
+}
+
+.sub {
+    color: var(--muted);
+    margin: 0 0 24px;
+}
+
+
+/* ---- карточки ---- */
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.about p {
+    margin: 0 0 8px;
+}
+
+.roles {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+    display: grid;
+    gap: 6px;
+}
+
+
+/* ---- формы и поля ввода ---- */
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+textarea,
+select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+}
+
+textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.temp {
+    flex: 2;
+    min-width: 200px;
+}
+
+.rounds {
+    flex: 1;
+    min-width: 140px;
+}
+
+input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+.hint {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+
+/* ---- кнопки ---- */
+
+button {
+    background: var(--accent);
+    color: var(--accent-text);
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 22px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+
+button.link {
+    background: none;
+    color: var(--accent);
+    padding: 0;
+    font-weight: 500;
+}
+
+.example {
+    background: none;
+    color: var(--accent);
+    font-size: 14px;
+    padding: 0;
+    font-weight: 500;
+}
+
+
+/* ---- сообщения об ошибках ---- */
+
+.error {
+    background: var(--err-bg);
+    color: var(--err);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+}
+
+
+/* ---- прогресс ---- */
+
+.progress h2 {
+    display: flex;
+    justify-content: space-between;
+}
+
+.steps {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    width: 100%;
+}
+
+.step {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    transition: border-color .3s, background .3s, color .3s;
+}
+
+.step > span:last-child {
+    white-space: nowrap;
+}
+
+.dot {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    border: 2px solid var(--border);
+}
+
+.step.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+}
+
+.step.active .dot {
+    border-color: var(--accent-soft);
+}
+
+.step.active .dot::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--accent);
+    animation: spin .9s linear infinite;
+}
+
+.step.done {
+    color: var(--text);
+}
+
+.step.done .dot {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-text);
+}
+
+.statusText {
+    font-weight: 600;
+}
+
+.dots::after {
+    content: "";
+    animation: dots 1.4s steps(4, end) infinite;
+}
+
+.bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width .6s ease;
+}
+
+
+/* ---- анимации ---- */
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes dots {
+    0% {
+        content: "";
+    }
+
+    25% {
+        content: ".";
+    }
+
+    50% {
+        content: "..";
+    }
+
+    75% {
+        content: "...";
+    }
+}
+
+@keyframes appear {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.appear {
+    animation: appear .4s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .step.active .dot::after,
+    .dots::after,
+    .appear {
+        animation: none;
+    }
+}
+
+
+/* ---- итоговый отчёт ---- */
+
+.report {
+    border: 2px solid var(--accent);
+}
+
+.report-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.verdict {
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 14px 0;
+}
+
+.verdict .lbl {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.verdict .txt {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.reasoning {
+    margin: 0 0 14px;
+}
+
+.reasoning .lbl,
+.panel .lbl {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.reasoning .lbl {
+    color: var(--muted);
+}
+
+.grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.panel {
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.panel.good {
+    background: var(--good-bg);
+}
+
+.panel.good .lbl {
+    color: var(--good);
+}
+
+.panel.warn {
+    background: var(--warn-bg);
+}
+
+.panel.warn .lbl {
+    color: var(--warn);
+}
+
+.panel.info {
+    background: var(--info-bg);
+}
+
+.panel.info .lbl {
+    color: var(--info);
+}
+
+.list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.list li {
+    position: relative;
+    padding-left: 16px;
+}
+
+.list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: .6em;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .55;
+}
+
+.signature {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+}
+
+
+/* ---- обсуждение ---- */
+
+details {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--bg);
+}
+
+summary {
+    cursor: pointer;
+}
+
+summary b {
+    font-weight: 700;
+}
+
+summary .gist {
+    display: block;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+details[open] summary .gist {
+    display: none;
+}
+
+.fields {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.field .lbl {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--muted);
+}
+
+.field.good .lbl {
+    color: var(--good);
+}
+
+.field.warn .lbl {
+    color: var(--warn);
+}
+
+.field.info .lbl {
+    color: var(--info);
+}
+
+.meta {
+    color: var(--muted);
+    font-size: 14px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+pre {
+    overflow: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+}
+
+
+/* ---- вспомогательные стили ---- */
+
+[hidden] {
+    display: none !important;
+}
