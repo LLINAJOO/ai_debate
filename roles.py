@@ -1,6 +1,3 @@
-"""Агенты обсуждения. Чтобы добавить участника — добавьте запись в ROLES
-и его id в DISCUSSION_ORDER (схема ответа — в app/schemas.py)."""
-
 from app.schemas import (
     CriticOutput, JudgeOutput, MediatorOutput, OpponentOutput, ResearcherOutput,
 )
