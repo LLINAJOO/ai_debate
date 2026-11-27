@@ -23,9 +23,7 @@ class DebateRequest(BaseModel):
 
 
 # ---------- Структуры ответов агентов ----------
-# Эти модели превращаются в JSON Schema для structured output.
 # extra="forbid" -> additionalProperties: false (требование strict-режима).
-# Значений по умолчанию нет намеренно: в strict-режиме все поля обязательны.
 
 class _AgentOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
